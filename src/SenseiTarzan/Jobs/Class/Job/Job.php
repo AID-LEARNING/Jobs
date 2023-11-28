@@ -12,6 +12,7 @@ use pocketmine\player\Player;
 use pocketmine\Server;
 use ReflectionException;
 use SenseiTarzan\IconUtils\IconForm;
+use SenseiTarzan\Jobs\libs\SenseiTarzan\ExtraEvent\Component\EventLoader;
 use SenseiTarzan\Jobs\Main;
 use SenseiTarzan\Jobs\Utils\Convertor;
 use SOFe\AwaitGenerator\Await;
@@ -50,8 +51,13 @@ class Job
         $this->listGiveaway = array_map(function (array $giveaway) {return Giveaway::create($giveaway); }, $listGiveaway);
         $this->commandSenderJob = new JobCommandSender($this, Server::getInstance(), Server::getInstance()->getLanguage());
         $eventFinal = ($event)($this);
-        $this->eventClass = Convertor::getEventsHandledBy($eventFinal);
-        $this->registeredListener = Server::getInstance()->getPluginManager()->registerEvent($this->eventClass, $eventFinal, EventPriority::NORMAL, Main::getInstance());
+        if ($eventFinal instanceof Closure) {
+            $this->eventClass = Convertor::getEventsHandledBy($eventFinal);
+            $this->registeredListener = Server::getInstance()->getPluginManager()->registerEvent($this->eventClass, $eventFinal, EventPriority::NORMAL, Main::getInstance());
+        }else {
+            Main::getInstance()->getLogger()->alert("Tu ne peux pas utilise le /jobs reload");
+            EventLoader::loadEventWithClass(Main::getInstance(), $eventFinal);
+        }
     }
 
     /**

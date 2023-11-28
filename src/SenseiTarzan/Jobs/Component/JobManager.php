@@ -43,7 +43,7 @@ class JobManager
         foreach (PathScanner::scanDirectoryToConfig(Path::join($this->plugin->getDataFolder(), "jobs"), ["yml"]) as $config){
             /**
              * @var Closure $event;
-             * @phpstan-param Closure(Job $_job) : Closure $event
+             * @phpstan-param Closure(Job $_job) : object $event
              */
             $event = eval($config->get('event'));
             $this->addJob(
@@ -97,6 +97,18 @@ class JobManager
             HandlerListManager::global()->getListFor($jobInList->getEventClass())->unregister($jobInList->getRegisteredListener());
         }
         $this->jobs[$job->getId()] = $job;
+    }
+
+    /**
+     * @throws ReflectionException
+     * @throws JobExistException
+     */
+    public function reloadAll(): void{
+        foreach ($this->jobs as $job){
+            HandlerListManager::global()->getListFor($job->getEventClass())->unregister($job->getRegisteredListener());
+        }
+        $this->jobs = [];
+        $this->loadDefaultJob();
     }
 
 
