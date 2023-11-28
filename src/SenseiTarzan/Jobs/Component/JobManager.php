@@ -3,7 +3,6 @@
 namespace SenseiTarzan\Jobs\Component;
 
 use Closure;
-use pocketmine\event\block\BlockBreakEvent;
 use pocketmine\event\HandlerListManager;
 use pocketmine\utils\Config;
 use pocketmine\utils\SingletonTrait;

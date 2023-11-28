@@ -138,10 +138,7 @@ class Convertor
     public static function getEventsHandledBy(Closure $closure): ?string
     {
         $method = new ReflectionFunction($closure);
-        if ($method->isStatic()) {
-            return null;
-        }
-
+        
         $parameters = $method->getParameters();
         if (count($parameters) !== 1) {
             return null;

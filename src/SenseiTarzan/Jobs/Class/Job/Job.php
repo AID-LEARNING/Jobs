@@ -15,7 +15,6 @@ use SenseiTarzan\IconUtils\IconForm;
 use SenseiTarzan\Jobs\Main;
 use SenseiTarzan\Jobs\Utils\Convertor;
 use SOFe\AwaitGenerator\Await;
-use pocketmine\event\Event;
 class Job
 {
     /**
