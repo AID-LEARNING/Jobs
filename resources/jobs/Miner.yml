@@ -1,0 +1,22 @@
+---
+name: "Miner"
+event: "
+  use SenseiTarzan\Jobs\Class\Job\Job;
+  use pocketmine\event\block\BlockBreakEvent;
+  use SenseiTarzan\Jobs\Component\JobPlayerManager;
+  use SenseiTarzan\Jobs\Class\Job\JobPlayer;
+  return (static function(Job $_job): Closure{
+      return (function(BlockBreakEvent $event): void void{
+          $player = $event->getPlayer();
+          $jobPlayer = JobPlayerManager::getInstance()->getPlayer($player);
+          if($jobPlayer === null) return ;
+          $blockName = GlobalBlockStateHandlers::getSerializer()->serialize($event->getBlock())->getName();
+          if($_job->existAction($blockName)) {
+            $xp = $_job->getXpByAction($blockName);
+            $jobPlayer->getJob($_job->getId())->addProgression($xp);
+          }
+      });
+  });
+"
+
+...

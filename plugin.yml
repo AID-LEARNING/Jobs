@@ -1,0 +1,7 @@
+name: Jobs
+authors:
+  - SenseiTarzan
+version: 1.0.4
+main: SenseiTarzan\Jobs\Main
+api: 5.0.0
+permissions: []
