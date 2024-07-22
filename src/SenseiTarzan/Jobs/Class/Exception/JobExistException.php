@@ -2,7 +2,9 @@
 
 namespace SenseiTarzan\Jobs\Class\Exception;
 
-class JobExistException extends \Exception
+use Exception;
+
+class JobExistException extends Exception
 {
 
 }

@@ -3,5 +3,12 @@ authors:
   - SenseiTarzan
 version: 1.0.4
 main: SenseiTarzan\Jobs\Main
+load: POSTWORLD
 api: 5.0.0
-permissions: []
+permissions:
+  jobs.admin.commands:
+    default: op
+softdepend:
+  - "Customies"
+  - "SymplyPlugin"
+  - "Middleware"

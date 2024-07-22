@@ -23,11 +23,16 @@ projects:
       - src: AID-LEARNING/IconForm/libIconForm
         version: ^1.0.0
       - src: AID-LEARNING/libDataBase/libDataBase
-        version: ^1.0.3
+        version: ^1.0.4
       - src: "AID-LEARNING/Commando/Commando"
         version: ^3.1.0
+      - src: Muqsit/AsyncIterator/AsyncIterator
+        version: ^1.1.4
+        branch: pm5
       - src: SOF3/await-std/await-std
         version: ^0.2.0
       - src: SOF3/await-generator/await-generator
         version: ^3.6.1
+      - src: Cosmoverse/BlockData/BlockData
+        version: ^0.0.3
 ...

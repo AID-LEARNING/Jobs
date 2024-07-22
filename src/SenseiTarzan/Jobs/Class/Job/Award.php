@@ -3,15 +3,18 @@
 namespace SenseiTarzan\Jobs\Class\Job;
 
 use Generator;
+use muqsit\asynciterator\handler\AsyncForeachResult;
 use pocketmine\item\Item;
 use pocketmine\player\Player;
 use SenseiTarzan\IconUtils\IconForm;
 use SenseiTarzan\Jobs\Class\Exception\PLayerFullInventoryExecution;
+use SenseiTarzan\Jobs\Main;
 use SenseiTarzan\Jobs\Utils\Convertor;
+use SenseiTarzan\Jobs\Utils\CustomKnownTranslationFactory;
 use SenseiTarzan\LanguageSystem\Component\LanguageManager;
 use SOFe\AwaitGenerator\Await;
 
-class Giveaway
+class Award
 {
     /** @var string */
     private readonly string $id;
@@ -21,12 +24,12 @@ class Giveaway
     private string $descriptionDefault;
     /** @var IconForm */
     private IconForm $icon;
-    /** @var Item|string */
-    private Item|string $item;
+    /** @var Item|string|Item[] */
+    private Item|string|array $item;
 
     private Job $parent;
 
-    public function __construct(private readonly string $name, string $type, string $descriptionDefault, string $icon, Item|string $item)
+    public function __construct(private readonly string $name, string $type, string $descriptionDefault, string $icon, Item|string|array $item)
     {
         $this->id = mb_strtolower($this->name);
         $this->type = mb_strtolower($type);
@@ -37,7 +40,7 @@ class Giveaway
 
     public static function create(array $data): self
     {
-        return new self($data["name"], $typeGiveaway = $data["type"], $data["descriptionDefault"], $data["icon"], match ($typeGiveaway) {
+        return new self($data["name"], $typeGiveaway = mb_strtolower($data["type"]), $data["description"], $data["icon"], match ($typeGiveaway) {
             "item" => Convertor::jsonToItem($data["item"]),
             "items" => array_map(fn (array $info) => Convertor::jsonToItem($info), $data['item']),
             default => (string)$data["item"]
@@ -58,7 +61,7 @@ class Giveaway
      */
     public function getName(?Player $player = null): string
     {
-        return $player === null ? $this->name : LanguageManager::getInstance()->getTranslate($player, "{$this->parent->getId()}.giveaway.{$this->getId()}.name}", [], $this->name);
+        return $player === null ? $this->name : LanguageManager::getInstance()->getTranslateWithTranslatable($player, CustomKnownTranslationFactory::name_award($this->getId()), default: $this->name);
     }
 
     /**
@@ -79,7 +82,7 @@ class Giveaway
 
     public function getDescription(?Player $player = null): string
     {
-        return $player === null ? $this->getDescriptionDefault() : LanguageManager::getInstance()->getTranslate($player, "{$this->parent->getId()}.giveaway.{$this->getId()}.description}", [], $this->getDescriptionDefault());
+        return $player === null ? $this->getDescriptionDefault() : LanguageManager::getInstance()->getTranslateWithTranslatable($player, CustomKnownTranslationFactory::description_award($this->getId()), default:  $this->getDescriptionDefault());
     }
 
     /**
@@ -122,13 +125,7 @@ class Giveaway
     {
         return $this->type === "items";
     }
-
-    public function isCommand(): bool
-    {
-        return $this->type === "command";
-    }
-
-    public function getGiveaway(Player $player): Generator
+    public function preGive(Player $player): Generator
     {
         return Await::promise(function ($resolve, $reject) use ($player): void {
             Await::f2c(function () use($player): Generator{
@@ -147,19 +144,17 @@ class Giveaway
         return Await::promise(function ($resolve, $reject) use ($player): void {
             if ($this->isItem()) {
                 $player->getInventory()->canAddItem($this->getItem()) ? $resolve() : $reject(new PLayerFullInventoryExecution());
-                return;
             } else if ($this->isItems()) {
-                    $items = $this->getItem();
-                    while (($item = array_shift($items)) !== null){
-                        if (!$player->getInventory()->canAddItem($item)){
-                            $reject(new PLayerFullInventoryExecution());
-                            break;
-                        }
-                    }
-                    $resolve();
-                    return;
-                }
-            $resolve();
+	            $handler_async = Main::getInstance()->getIteratorAsync()->forEach(new \ArrayIterator($this->getItem()));
+	            $handler_async->as(function (int $key, Item $item) use ($player){
+		            if (!$player->getInventory()->canAddItem($item))
+			            return AsyncForeachResult::INTERRUPT();
+		            return AsyncForeachResult::CONTINUE();
+	            });
+	            Await::g2c(Main::getIteratorAsyncAwait($handler_async, new PLayerFullInventoryExecution()), $resolve, $reject);
+			}else {
+	            $resolve();
+            }
         });
     }
 }

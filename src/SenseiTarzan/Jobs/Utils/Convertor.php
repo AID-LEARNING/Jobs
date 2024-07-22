@@ -2,45 +2,56 @@
 
 namespace SenseiTarzan\Jobs\Utils;
 
-use Closure;
 use Exception;
 use Generator;
+use pocketmine\block\Block;
+use pocketmine\block\RuntimeBlockStateRegistry;
 use pocketmine\block\VanillaBlocks;
-use pocketmine\data\bedrock\block\BlockStateData;
+use pocketmine\data\bedrock\block\convert\BlockObjectToStateSerializer;
+use pocketmine\data\bedrock\block\upgrade\LegacyBlockIdToStringIdMap;
 use pocketmine\data\bedrock\EnchantmentIdMap;
 use pocketmine\data\bedrock\item\ItemTypeDeserializeException;
+use pocketmine\data\bedrock\item\SavedItemData;
+use pocketmine\data\bedrock\item\SavedItemStackData;
 use pocketmine\data\SavedDataLoadingException;
 use pocketmine\event\Event;
 use pocketmine\item\Durable;
 use pocketmine\item\enchantment\EnchantmentInstance;
 use pocketmine\item\Item;
+use pocketmine\item\LegacyStringToItemParser;
+use pocketmine\item\StringToItemParser;
 use pocketmine\nbt\LittleEndianNbtSerializer;
 use pocketmine\nbt\TreeRoot;
 use pocketmine\player\Player;
 use pocketmine\utils\TextFormat;
 use pocketmine\world\format\io\GlobalBlockStateHandlers;
 use pocketmine\world\format\io\GlobalItemDataHandlers;
+use ReflectionClass;
 use ReflectionException;
 use ReflectionFunction;
+use ReflectionNamedType;
 use SenseiTarzan\Jobs\Class\Exception\DataJobLoadException;
 use SenseiTarzan\Jobs\Class\Job\DataJob;
 use SOFe\AwaitGenerator\Await;
+use Throwable;
 
 class Convertor
 {
 
     /**
+     * @param Player $player
      * @param array $data
-     * @return Generator<DataJob[]>
-     * @throws DataJobLoadException
+     * @return Generator<array<string, DataJob>>
      */
     public static function jsonToDataJson(Player $player, array $data): Generator
     {
         return Await::promise(function ($resolve, $reject) use ($player, $data) {
             try {
-                array_walk($data, fn(array $dataJson, string $key) => DataJob::create($player, $key, ($dataJson['level'] ?? 0), ($dataJson['progression'] ?? 0)));
+                array_walk($data, function(array &$dataJson, string $key) use ($player): void {
+                    $dataJson = DataJob::create($key, ($dataJson['level'] ?? 0), ($dataJson['progression'] ?? 0));
+                });
                 $resolve($data);
-            } catch (\Throwable){
+            } catch (Throwable){
                 $reject(new DataJobLoadException("Impossible de charger ses jobs"));
             }
         });
@@ -113,6 +124,8 @@ class Convertor
     {
         $nbt = "";
 
+	    $diString = $info['id'];
+
         //Backwards compatibility
         if (isset($data["nbt"])) {
             $nbt = $data["nbt"];
@@ -121,15 +134,25 @@ class Convertor
         } elseif (isset($data["nbt_b64"])) {
             $nbt = base64_decode($data["nbt_b64"], true);
         }
-        $itemStackData = GlobalItemDataHandlers::getUpgrader()->upgradeItemTypeDataString($info['id'], $info['damage'] ?? 0, $info['count'] ?? 1,
-            $nbt !== "" ? (new LittleEndianNbtSerializer())->read($nbt)->mustGetCompoundTag() : null
-        );
-
-        try {
-            return GlobalItemDataHandlers::getDeserializer()->deserializeStack($itemStackData);
-        } catch (ItemTypeDeserializeException $e) {
-            throw new SavedDataLoadingException($e->getMessage(), 0, $e);
-        }
+		$item = null;
+	    try {
+		    $itemStackData = GlobalItemDataHandlers::getUpgrader()->upgradeItemTypeDataString($info['id'], $info['damage'] ?? 0, $info['count'] ?? 1,
+			    $nbt !== "" ? (new LittleEndianNbtSerializer())->read($nbt)->mustGetCompoundTag() : null
+		    );
+		    $item =  GlobalItemDataHandlers::getDeserializer()->deserializeStack($itemStackData);
+	    }catch (\Throwable $e){
+		    $item = StringToItemParser::getInstance()->parse($info['id']) ?? LegacyStringToItemParser::getInstance()->parse($info['id']);
+		    if (!$item) {
+			    throw new SavedDataLoadingException("item : ". $info['id'] . ":" . ($info['damage'] ?? 0), 0, $e);
+		    }
+		    $item->setCount(($info['count'] ?? 1));
+		    $item->setNamedTag((new LittleEndianNbtSerializer())->read($nbt)->mustGetCompoundTag());
+	    } finally {
+		    if (!$item) {
+			    throw new SavedDataLoadingException("item : ". $info['id'] . ":" . ($info['damage'] ?? 0), 0, null);
+		    }
+		    return $item;
+	    }
     }
 
     /**
@@ -145,13 +168,13 @@ class Convertor
         }
 
         $paramType = $parameters[0]->getType();
-        if (!$paramType instanceof \ReflectionNamedType || $paramType->isBuiltin()) {
+        if (!$paramType instanceof ReflectionNamedType || $paramType->isBuiltin()) {
             return null;
         }
 
         /** @phpstan-var class-string $paramClass */
         $paramClass = $paramType->getName();
-        $eventClass = new \ReflectionClass($paramClass);
+        $eventClass = new ReflectionClass($paramClass);
         if (!$eventClass->isSubclassOf(Event::class)) {
             return null;
         }

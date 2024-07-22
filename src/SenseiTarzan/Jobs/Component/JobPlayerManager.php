@@ -33,6 +33,13 @@ class JobPlayerManager
         return $this->players[$player] ?? null;
     }
 
+    /**
+     * @return WeakMap<Player, JobPlayer>
+     */
+    public function getPlayers(): WeakMap{
+        return $this->players;
+    }
+
     public function loadPlayer(Player $player, JobPlayer $jobPlayer): Generator{
         return Await::promise(function ($resolve, $reject) use($player, $jobPlayer){
             try {

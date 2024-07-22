@@ -1,5 +1,5 @@
 ---
-name: "Miner"
+name: "Farmer"
 icon: "https://cdn-icons-png.flaticon.com/512/2586/2586058.png"
 description: ""
 event: '
@@ -10,12 +10,9 @@ event: '
   use SenseiTarzan\Jobs\libs\SOFe\AwaitGenerator\Await;
   use pocketmine\world\format\io\GlobalBlockStateHandlers;
   use SenseiTarzan\Jobs\Main;
-  class MinerEvent {
-    public function __construct(privrate Job $job){
-    }
-  }
   return (static function(Job $_job): Closure {
-      return (static function(BlockBreakEvent $event) use($_job): void {
+      return (static function(BlockBreakEvent $event) use($_job): void {*
+          if($event->isCancelled()) return;
           $player = $event->getPlayer();
           $blockName = GlobalBlockStateHandlers::getSerializer()->serialize($event->getBlock()->getStateId())->getName();
           $position = $event->getBlock()->getPosition();
@@ -30,8 +27,10 @@ event: '
   });
 '
 listActionToXp:
-  "minecraft:dirt": 5.0
-  "minecraft:stone": 1.5
+  "minecraft:grass":
+        level: 2
+        'xp': 8
+  "minecraft:iron_ore": 1.5
 listXpByLevel:
   1: 28
   2: 250
