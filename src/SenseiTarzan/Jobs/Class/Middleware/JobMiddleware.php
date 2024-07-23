@@ -7,8 +7,11 @@ use pocketmine\event\server\DataPacketReceiveEvent;
 use pocketmine\network\mcpe\protocol\LoginPacket;
 use pocketmine\network\mcpe\protocol\SetLocalPlayerAsInitializedPacket;
 use SenseiTarzan\DataBase\Component\DataManager;
+use SenseiTarzan\Middleware\Class\AttributeMiddlewarePriority;
 use SenseiTarzan\Middleware\Class\IMiddleWare;
+use SenseiTarzan\Middleware\Class\MiddlewarePriority;
 
+#[AttributeMiddlewarePriority(MiddlewarePriority::MONITOR)]
 class JobMiddleware implements IMiddleWare
 {
 

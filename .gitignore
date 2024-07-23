@@ -1,5 +1,6 @@
 .idea
 out/
-.phar
+vendor
+*.phar
 build.sh
 build.bat

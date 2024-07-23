@@ -5,6 +5,7 @@ namespace SenseiTarzan\Jobs\Class\Save;
 use Error;
 use Exception;
 use Generator;
+use PHPUnit\Event\Code\Throwable;
 use pocketmine\player\Player;
 use SenseiTarzan\DataBase\Class\IDataSave;
 use SenseiTarzan\Jobs\Class\Job\DataJob;
@@ -43,24 +44,18 @@ abstract class DataSaveJob implements IDataSave
 	final public function loadDataPlayerByMiddleware(Player|string $player): \Generator
 	{
 		Main::getInstance()->getLogger()->info("Creation de la Promise de recuperation des jobs pour {$player->getName()}");
-		return Await::promise(function ($resolve) use ($player) {
+		return Await::promise(function ($resolve, $reject) use ($player) {
 			Await::f2c(function () use ($player) {
-				try {
 					$data = (yield from $this->createPromiseLoadJob($player));
 					$dataFinal = (yield from $this->creationPromiseDataJob($data));
 					$JobPlayer = (yield from JobPlayer::create($player, $dataFinal));
 					yield from JobPlayerManager::getInstance()->loadPlayer($player, $JobPlayer);
 					return null;
-				}catch (Error|Exception $exception){
-					return $exception;
-				}
-			}, static function (Error|Exception|null $result) use ($player, $resolve): void {
-				if ($result instanceof Error || $result instanceof Exception){
-					Main::getInstance()->getLogger()->info("La promise de recuperation des jobs de {$player->getName()} a échoué");
-				}else{
-					Main::getInstance()->getLogger()->info("La promise de recuperation des jobs de {$player->getName()} a réussi");
-				}
-				$resolve($result);
+			}, function () use ($player){
+				Main::getInstance()->getLogger()->info("La promise de recuperation des jobs de {$player->getName()} a réussi");
+			}, static function (Throwable $result) use ($player, $reject): void {
+				Main::getInstance()->getLogger()->info("La promise de recuperation des jobs de {$player->getName()} a échoué");
+				$reject($result);
 			});
 		});
 	}
