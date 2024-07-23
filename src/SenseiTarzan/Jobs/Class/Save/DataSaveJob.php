@@ -51,8 +51,9 @@ abstract class DataSaveJob implements IDataSave
 					$JobPlayer = (yield from JobPlayer::create($player, $dataFinal));
 					yield from JobPlayerManager::getInstance()->loadPlayer($player, $JobPlayer);
 					return null;
-			}, function () use ($player){
+			}, function () use ($resolve, $player){
 				Main::getInstance()->getLogger()->info("La promise de recuperation des jobs de {$player->getName()} a réussi");
+				$resolve();
 			}, static function (Throwable $result) use ($player, $reject): void {
 				Main::getInstance()->getLogger()->info("La promise de recuperation des jobs de {$player->getName()} a échoué");
 				$reject($result);
