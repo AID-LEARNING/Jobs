@@ -43,7 +43,7 @@ class Award
         return new self($data["name"], $typeGiveaway = mb_strtolower($data["type"]), $data["description"], $data["icon"], match ($typeGiveaway) {
             "item" => Convertor::jsonToItem($data["item"]),
             "items" => array_map(fn (array $info) => Convertor::jsonToItem($info), $data['item']),
-            default => (string)$data["item"]
+            default => $data["item"]
         });
     }
 
